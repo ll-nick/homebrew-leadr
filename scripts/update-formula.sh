@@ -62,7 +62,7 @@ class ${FORMULA_NAME} < Formula
     if Hardware::CPU.arm?
       url "https://github.com/${PROJECT_SLUG}/releases/download/${VERSION}/${BINARY_NAME}-${VERSION}-aarch64-apple-darwin"
       sha256 "${SHASUMS[mac_arm64]}"
-    elsif Hardware::CPU.intel?
+    else
       url "https://github.com/${PROJECT_SLUG}/releases/download/${VERSION}/${BINARY_NAME}-${VERSION}-x86_64-apple-darwin"
       sha256 "${SHASUMS[mac_amd64]}"
     end
@@ -72,17 +72,35 @@ class ${FORMULA_NAME} < Formula
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
       url "https://github.com/${PROJECT_SLUG}/releases/download/${VERSION}/${BINARY_NAME}-${VERSION}-aarch64-unknown-linux-musl"
       sha256 "${SHASUMS[linux_arm64]}"
-    elsif Hardware::CPU.arm? && !Hardware::CPU.is_64_bit?
+    elsif Hardware::CPU.arm? && Hardware::CPU.is_32_bit?
       url "https://github.com/${PROJECT_SLUG}/releases/download/${VERSION}/${BINARY_NAME}-${VERSION}-armv7-unknown-linux-musleabihf"
       sha256 "${SHASUMS[linux_armv7]}"
     elsif Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
       url "https://github.com/${PROJECT_SLUG}/releases/download/${VERSION}/${BINARY_NAME}-${VERSION}-x86_64-unknown-linux-musl"
       sha256 "${SHASUMS[linux_amd64]}"
+    else
+      odie "leadr: no prebuilt binary available for this CPU on Linux"
     end
   end
 
   def install
-    bin.install Pathname(url).basename => "${BINARY_NAME}"
+    if OS.mac?
+      if Hardware::CPU.arm?
+        binary_name = "${BINARY_NAME}-v#{version}-aarch64-apple-darwin"
+      else
+        binary_name = "${BINARY_NAME}-v#{version}-x86_64-apple-darwin"
+      end
+    else
+      if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
+        binary_name = "${BINARY_NAME}-v#{version}-x86_64-unknown-linux-musl"
+      elsif Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
+        binary_name = "${BINARY_NAME}-v#{version}-aarch64-unknown-linux-musl"
+      else
+        binary_name = "${BINARY_NAME}-v#{version}-armv7-unknown-linux-musleabihf"
+      end
+    end
+
+    bin.install binary_name => "${BINARY_NAME}"
   end
 
   test do
